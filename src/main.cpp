@@ -114,6 +114,8 @@ void notify()
     dfmp3.playMp3FolderTrack(2);
 #endif
 
+    digitalWrite(PIN_MISSILE, HIGH);
+
     // Back
     ledcWrite(CHANNEL_B1, 0);
     ledcWrite(CHANNEL_B2, pow(2, TRACK_MOTOR_RESOLUTION) - 1);
@@ -268,8 +270,8 @@ void loop() {
 
 #ifdef USE_SOUND
   dfmp3.loop();
-  delay(1);
 #endif
+  delay(1);
 }
 
 #ifdef USE_SOUND
