@@ -8,6 +8,8 @@
 #include "soc/soc.h"             // disable brownout problems
 #include "soc/rtc_cntl_reg.h"    // disable brownout problems
 
+#define USE_SOUND
+
 #ifdef USE_SOUND
 #include "DFMiniMp3.h"
 #endif
@@ -21,25 +23,24 @@
 // 13 outputs PWM signal at boot
 // 14 outputs PWM signal at boot
 
-
 #ifdef USE_SOUND
-#define PIN_RX 16 // FIXED
-#define PIN_TX 17 // FIXED
+#define PIN_RX 16 // RX2
+#define PIN_TX 17 // TX2
 #endif
 
-#define PIN_TURRET 15
+#define PIN_TURRET_SERVO 22 // PWM(Servo)
 
-#define PIN_TRACK_A1 21
-#define PIN_TRACK_A2 22
-#define PIN_TRACK_B1 17
-#define PIN_TRACK_B2 16
+#define PIN_MISSILE_LED 23 // Digital
 
-#define PIN_MISSILE 4
+#define PIN_TRACK_L1_MOTOR 25 // PWM(Analog)
+#define PIN_TRACK_L2_MOTOR 26 // PWM(Analog)
+#define PIN_TRACK_R1_MOTOR 33 // PWM(Analog)
+#define PIN_TRACK_R2_MOTOR 32 // PWM(Analog)
 
-#define CHANNEL_A1 12
-#define CHANNEL_A2 13
-#define CHANNEL_B1 14
-#define CHANNEL_B2 15
+#define CHANNEL_L1 14
+#define CHANNEL_L2 15
+#define CHANNEL_R1 12
+#define CHANNEL_R2 13
 
 #ifdef USE_SOUND
 #define MAX_VOLUME 18
@@ -76,11 +77,11 @@ void init() {
 
   bodyAngle = center;
 
-  servoTurret.attach(PIN_TURRET, 500, 2400);
+  servoTurret.attach(PIN_TURRET_SERVO, 500, 2400);
 
   servoTurret.write(center);
 
-  pinMode(PIN_MISSILE, OUTPUT);
+  pinMode(PIN_MISSILE_LED, OUTPUT);
 
 #ifdef USE_SOUND
   dfmp3.playMp3FolderTrack(3);
@@ -114,25 +115,25 @@ void notify()
     dfmp3.playMp3FolderTrack(2);
 #endif
 
-    digitalWrite(PIN_MISSILE, HIGH);
+    digitalWrite(PIN_MISSILE_LED, HIGH);
 
     // Back
-    ledcWrite(CHANNEL_B1, 0);
-    ledcWrite(CHANNEL_B2, pow(2, TRACK_MOTOR_RESOLUTION) - 1);
+    ledcWrite(CHANNEL_L1, 0);
+    ledcWrite(CHANNEL_L2, pow(2, TRACK_MOTOR_RESOLUTION) - 1);
 
-    ledcWrite(CHANNEL_A1, 0);
-    ledcWrite(CHANNEL_A2, pow(2, TRACK_MOTOR_RESOLUTION) - 1);
+    ledcWrite(CHANNEL_R1, 0);
+    ledcWrite(CHANNEL_R2, pow(2, TRACK_MOTOR_RESOLUTION) - 1);
 
     delay(30); // N30
 
-    ledcWrite(CHANNEL_B1, 0);
-    ledcWrite(CHANNEL_B2, 0);
+    ledcWrite(CHANNEL_L1, 0);
+    ledcWrite(CHANNEL_L2, 0);
 
-    ledcWrite(CHANNEL_A1, 0);
-    ledcWrite(CHANNEL_A2, 0);
+    ledcWrite(CHANNEL_R1, 0);
+    ledcWrite(CHANNEL_R2, 0);
 
     delay(300);
-    digitalWrite(PIN_MISSILE, LOW);
+    digitalWrite(PIN_MISSILE_LED, LOW);
   }
 
 
@@ -165,31 +166,31 @@ void notify()
   // Track
   int absLy = abs(Ps3.event.analog_changed.stick.ly);
   if (absLy < STICK_THRESHOLD) {
-    ledcWrite(CHANNEL_B1, 0);
-    ledcWrite(CHANNEL_B2, 0);
+    ledcWrite(CHANNEL_L1, 0);
+    ledcWrite(CHANNEL_L2, 0);
   } else {
     if (Ps3.event.analog_changed.stick.ly < -STICK_THRESHOLD) {
-      ledcWrite(CHANNEL_B1, 127);
-      ledcWrite(CHANNEL_B2, 0);
+      ledcWrite(CHANNEL_L1, 127);
+      ledcWrite(CHANNEL_L2, 0);
     }
     else if (Ps3.event.analog_changed.stick.ly > STICK_THRESHOLD) {
-      ledcWrite(CHANNEL_B1, 0);
-      ledcWrite(CHANNEL_B2, 127);
+      ledcWrite(CHANNEL_L1, 0);
+      ledcWrite(CHANNEL_L2, 127);
     }
   }
 
   int absRy = abs(Ps3.event.analog_changed.stick.ry);
   if (absRy < STICK_THRESHOLD) {
-    ledcWrite(CHANNEL_A1, 0);
-    ledcWrite(CHANNEL_A2, 0);    
+    ledcWrite(CHANNEL_R1, 0);
+    ledcWrite(CHANNEL_R2, 0);    
   } else {
     if (Ps3.event.analog_changed.stick.ry < -STICK_THRESHOLD) {
-      ledcWrite(CHANNEL_A1, 127);
-      ledcWrite(CHANNEL_A2, 0);
+      ledcWrite(CHANNEL_R1, 127);
+      ledcWrite(CHANNEL_R2, 0);
     }
     else if (Ps3.event.analog_changed.stick.ry > STICK_THRESHOLD) {
-      ledcWrite(CHANNEL_A1, 0);
-      ledcWrite(CHANNEL_A2, 127);
+      ledcWrite(CHANNEL_R1, 0);
+      ledcWrite(CHANNEL_R2, 127);
     }
   }
 }
@@ -214,25 +215,25 @@ void onConnect() {
 
   reset();
 
-  servoTurret.attach(PIN_TURRET, 500, 2400);
+  servoTurret.attach(PIN_TURRET_SERVO, 500, 2400);
 
-  ESP_LOGD(MAIN_TAG, "Setup CHANNEL_A1 %d",  CHANNEL_A1);
-  ledcSetup(CHANNEL_A1, 1000, 7); // 0~127
-  ESP_LOGD(MAIN_TAG, "Setup CHANNEL_A2 %d", CHANNEL_A2);
-  ledcSetup(CHANNEL_A2, 1000, 7); // 0~127
-  ESP_LOGD(MAIN_TAG, "Setup CHANNEL_B1 %d", CHANNEL_B1);
-  ledcSetup(CHANNEL_B1, 1000, 7); // 0~127
-  ESP_LOGD(MAIN_TAG, "Setup CHANNEL_B2 %d", CHANNEL_B2);
-  ledcSetup(CHANNEL_B2, 1000, 7); // 0~127
+  ESP_LOGD(MAIN_TAG, "Setup CHANNEL_R1 %d",  CHANNEL_R1);
+  ledcSetup(CHANNEL_R1, 1000, 7); // 0~127
+  ESP_LOGD(MAIN_TAG, "Setup CHANNEL_R2 %d", CHANNEL_R2);
+  ledcSetup(CHANNEL_R2, 1000, 7); // 0~127
+  ESP_LOGD(MAIN_TAG, "Setup CHANNEL_L1 %d", CHANNEL_L1);
+  ledcSetup(CHANNEL_L1, 1000, 7); // 0~127
+  ESP_LOGD(MAIN_TAG, "Setup CHANNEL_L2 %d", CHANNEL_L2);
+  ledcSetup(CHANNEL_L2, 1000, 7); // 0~127
 
-  ESP_LOGD(MAIN_TAG, "Attach PIN_TRACK_A1 %d", PIN_TRACK_A1);
-  ledcAttachPin(PIN_TRACK_A1, CHANNEL_A1);
-  ESP_LOGD(MAIN_TAG, "Attach PIN_TRACK_A2 %d", PIN_TRACK_A2);
-  ledcAttachPin(PIN_TRACK_A2, CHANNEL_A2);
-  ESP_LOGD(MAIN_TAG, "Attach PIN_TRACK_B1 %d", PIN_TRACK_B1);
-  ledcAttachPin(PIN_TRACK_B1, CHANNEL_B1);
-  ESP_LOGD(MAIN_TAG, "Attach PIN_TRACK_B2 %d", PIN_TRACK_B2);
-  ledcAttachPin(PIN_TRACK_B2, CHANNEL_B2);
+  ESP_LOGD(MAIN_TAG, "Attach PIN_TRACK_R1_MOTOR %d", PIN_TRACK_R1_MOTOR);
+  ledcAttachPin(PIN_TRACK_R1_MOTOR, CHANNEL_R1);
+  ESP_LOGD(MAIN_TAG, "Attach PIN_TRACK_R2_MOTOR %d", PIN_TRACK_R2_MOTOR);
+  ledcAttachPin(PIN_TRACK_R2_MOTOR, CHANNEL_R2);
+  ESP_LOGD(MAIN_TAG, "Attach PIN_TRACK_L1_MOTOR %d", PIN_TRACK_L1_MOTOR);
+  ledcAttachPin(PIN_TRACK_L1_MOTOR, CHANNEL_L1);
+  ESP_LOGD(MAIN_TAG, "Attach PIN_TRACK_L2_MOTOR %d", PIN_TRACK_L2_MOTOR);
+  ledcAttachPin(PIN_TRACK_L2_MOTOR, CHANNEL_L2);
 
 #ifdef USE_SOUND
   dfmp3.playMp3FolderTrack(3);
