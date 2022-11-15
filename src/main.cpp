@@ -140,12 +140,12 @@ void notify()
   // Turret
   if (Ps3.event.button_down.left) {
     ESP_LOGD(MAIN_TAG, "Left(Turret)");
-    bodyAngle = min(bodyAngle + 5, 180);
+    bodyAngle = max(bodyAngle - 5, 0);
     servoTurret.write(bodyAngle);
   }
   if (Ps3.event.button_down.right) {
     ESP_LOGD(MAIN_TAG, "Right(Turret)");
-    bodyAngle = max(bodyAngle - 5, 0);
+    bodyAngle = min(bodyAngle + 5, 180);
     servoTurret.write(bodyAngle);
   }
 
@@ -300,30 +300,30 @@ public:
     switch (errorCode)
     {
     case DfMp3_Error_Busy:
-      ESP_LOGE(MAIN_TAG, "Com Error - Busy");
+      ESP_LOGW(MAIN_TAG, "Com Error - Busy");
       break;
     case DfMp3_Error_Sleeping:
-      ESP_LOGE(MAIN_TAG, "Com Error - Sleeping");
+      ESP_LOGW(MAIN_TAG, "Com Error - Sleeping");
       break;
     case DfMp3_Error_SerialWrongStack:
-      ESP_LOGE(MAIN_TAG, "Com Error - Serial Wrong Stack");
+      ESP_LOGW(MAIN_TAG, "Com Error - Serial Wrong Stack");
       break;
 
     case DfMp3_Error_RxTimeout:
-      ESP_LOGE(MAIN_TAG, "Com Error - Rx Timeout!!!");
+      ESP_LOGW(MAIN_TAG, "Com Error - Rx Timeout!!!");
       break;
     case DfMp3_Error_PacketSize:
-      ESP_LOGE(MAIN_TAG, "Com Error - Wrong Packet Size!!!");
+      ESP_LOGW(MAIN_TAG, "Com Error - Wrong Packet Size!!!");
       break;
     case DfMp3_Error_PacketHeader:
-      ESP_LOGE(MAIN_TAG, "Com Error - Wrong Packet Header!!!");
+      ESP_LOGW(MAIN_TAG, "Com Error - Wrong Packet Header!!!");
       break;
     case DfMp3_Error_PacketChecksum:
-      ESP_LOGE(MAIN_TAG, "Com Error - Wrong Packet Checksum!!!");
+      ESP_LOGW(MAIN_TAG, "Com Error - Wrong Packet Checksum!!!");
       break;
 
     default:
-      ESP_LOGE(MAIN_TAG, "Com Error - %d", errorCode);
+      ESP_LOGW(MAIN_TAG, "Com Error - %d", errorCode);
       break;
     }
   }
