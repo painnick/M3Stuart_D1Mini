@@ -32,10 +32,10 @@
 
 #define PIN_MISSILE_LED 23 // Digital
 
-#define PIN_TRACK_L1_MOTOR 25 // PWM(Analog)
-#define PIN_TRACK_L2_MOTOR 26 // PWM(Analog)
-#define PIN_TRACK_R1_MOTOR 33 // PWM(Analog)
-#define PIN_TRACK_R2_MOTOR 32 // PWM(Analog)
+#define PIN_TRACK_L1_MOTOR 33 // PWM(Analog)
+#define PIN_TRACK_L2_MOTOR 32 // PWM(Analog)
+#define PIN_TRACK_R1_MOTOR 25 // PWM(Analog)
+#define PIN_TRACK_R2_MOTOR 26 // PWM(Analog)
 
 #define CHANNEL_L1 14
 #define CHANNEL_L2 15
