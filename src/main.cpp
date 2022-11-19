@@ -48,7 +48,7 @@
 
 #define STICK_THRESHOLD 20
 
-#define TRACK_MOTOR_RESOLUTION 8
+#define TRACK_MOTOR_RESOLUTION 7
 
 Servo servoTurret;
 
@@ -60,17 +60,35 @@ DfMp3 dfmp3(mySerial);
 int volume = MAX_VOLUME; // 0~30
 #endif
 
-int center = 90;
+const int center = 90;
 
 int bodyAngle = center;
 
 int angleStep = 5;
 int servoDelay = 15;
 
+int trackSpeed = pow(2, TRACK_MOTOR_RESOLUTION) - 1; // Default Max
+bool isTurbo = false;
+
 bool circlePress = false;
 bool triaglePress = false;
 bool squarePress = false;
 bool crossPress = false;
+
+uint setTrackSpeed(bool isTurbo) {
+  #ifdef USE_TURNO
+  if (isTurbo) {
+    trackSpeed = 255;
+  } else {
+    trackSpeed = 128;
+  }
+  ESP_LOGD(MAIN_TAG, "trackSpeed %d", trackSpeed);
+  #else
+  trackSpeed = 255;
+  #endif
+
+  return trackSpeed;
+}
 
 void init() {
   ESP_LOGI(MAIN_TAG, "Init.(Internal)");
@@ -79,20 +97,27 @@ void init() {
 
   servoTurret.attach(PIN_TURRET_SERVO, 500, 2400);
 
-  servoTurret.write(center);
+  servoTurret.write(bodyAngle);
 
   pinMode(PIN_MISSILE_LED, OUTPUT);
 
-#ifdef USE_SOUND
-  dfmp3.playMp3FolderTrack(3);
-#endif
+  setTrackSpeed(isTurbo);
+
+// #ifdef USE_SOUND
+//   dfmp3.playMp3FolderTrack(3);
+//   delay(1000);
+//   dfmp3.playMp3FolderTrack(3);
+// #endif
 }
 
 void reset() {
   ESP_LOGI(MAIN_TAG, "Reset");
   bodyAngle = center;
 
-  servoTurret.write(center);
+  servoTurret.write(bodyAngle);
+
+  isTurbo = false;
+  setTrackSpeed(isTurbo);
 
 #ifdef USE_SOUND
   dfmp3.playMp3FolderTrack(3);
@@ -106,6 +131,13 @@ void notify()
   if (Ps3.event.button_down.start) {
     ESP_LOGI(MAIN_TAG, "Start(Reset)");
     reset();
+  }
+
+  // TURBO!
+  if (Ps3.event.button_down.select) {
+    ESP_LOGI(MAIN_TAG, "Select(Turbo)");
+    isTurbo = !isTurbo;
+    setTrackSpeed(isTurbo);
   }
 
   // Missile
@@ -140,12 +172,12 @@ void notify()
   // Turret
   if (Ps3.event.button_down.left) {
     ESP_LOGD(MAIN_TAG, "Left(Turret)");
-    bodyAngle = max(bodyAngle - 5, 0);
+    bodyAngle = max(bodyAngle - 5, 10);
     servoTurret.write(bodyAngle);
   }
   if (Ps3.event.button_down.right) {
     ESP_LOGD(MAIN_TAG, "Right(Turret)");
-    bodyAngle = min(bodyAngle + 5, 180);
+    bodyAngle = min(bodyAngle + 5, 170);
     servoTurret.write(bodyAngle);
   }
 
@@ -170,12 +202,12 @@ void notify()
     ledcWrite(CHANNEL_L2, 0);
   } else {
     if (Ps3.event.analog_changed.stick.ly < -STICK_THRESHOLD) {
-      ledcWrite(CHANNEL_L1, 127);
+      ledcWrite(CHANNEL_L1, trackSpeed);
       ledcWrite(CHANNEL_L2, 0);
     }
     else if (Ps3.event.analog_changed.stick.ly > STICK_THRESHOLD) {
       ledcWrite(CHANNEL_L1, 0);
-      ledcWrite(CHANNEL_L2, 127);
+      ledcWrite(CHANNEL_L2, trackSpeed);
     }
   }
 
@@ -185,12 +217,12 @@ void notify()
     ledcWrite(CHANNEL_R2, 0);    
   } else {
     if (Ps3.event.analog_changed.stick.ry < -STICK_THRESHOLD) {
-      ledcWrite(CHANNEL_R1, 127);
+      ledcWrite(CHANNEL_R1, trackSpeed);
       ledcWrite(CHANNEL_R2, 0);
     }
     else if (Ps3.event.analog_changed.stick.ry > STICK_THRESHOLD) {
       ledcWrite(CHANNEL_R1, 0);
-      ledcWrite(CHANNEL_R2, 127);
+      ledcWrite(CHANNEL_R2, trackSpeed);
     }
   }
 }
@@ -218,13 +250,13 @@ void onConnect() {
   servoTurret.attach(PIN_TURRET_SERVO, 500, 2400);
 
   ESP_LOGD(MAIN_TAG, "Setup CHANNEL_R1 %d",  CHANNEL_R1);
-  ledcSetup(CHANNEL_R1, 1000, 7); // 0~127
+  ledcSetup(CHANNEL_R1, 1000, TRACK_MOTOR_RESOLUTION);
   ESP_LOGD(MAIN_TAG, "Setup CHANNEL_R2 %d", CHANNEL_R2);
-  ledcSetup(CHANNEL_R2, 1000, 7); // 0~127
+  ledcSetup(CHANNEL_R2, 1000, TRACK_MOTOR_RESOLUTION);
   ESP_LOGD(MAIN_TAG, "Setup CHANNEL_L1 %d", CHANNEL_L1);
-  ledcSetup(CHANNEL_L1, 1000, 7); // 0~127
+  ledcSetup(CHANNEL_L1, 1000, TRACK_MOTOR_RESOLUTION);
   ESP_LOGD(MAIN_TAG, "Setup CHANNEL_L2 %d", CHANNEL_L2);
-  ledcSetup(CHANNEL_L2, 1000, 7); // 0~127
+  ledcSetup(CHANNEL_L2, 1000, TRACK_MOTOR_RESOLUTION);
 
   ESP_LOGD(MAIN_TAG, "Attach PIN_TRACK_R1_MOTOR %d", PIN_TRACK_R1_MOTOR);
   ledcAttachPin(PIN_TRACK_R1_MOTOR, CHANNEL_R1);
