@@ -1,5 +1,8 @@
 {
     "files.associations": {
-        "cmath": "cpp"
+        "cmath": "cpp",
+        "memory": "cpp",
+        "random": "cpp",
+        "optional": "cpp"
     }
 }
