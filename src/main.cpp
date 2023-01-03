@@ -60,13 +60,6 @@ DfMp3 dfmp3(mySerial);
 int volume = MAX_VOLUME; // 0~30
 #endif
 
-const int center = 90;
-
-int bodyAngle = center;
-
-int angleStep = 5;
-int servoDelay = 15;
-
 int trackSpeed = pow(2, TRACK_MOTOR_RESOLUTION) - 1; // Default Max
 bool isTurbo = false;
 
@@ -76,7 +69,7 @@ bool squarePress = false;
 bool crossPress = false;
 
 uint setTrackSpeed(bool isTurbo) {
-  #ifdef USE_TURNO
+  #ifdef USE_TURBO
   if (isTurbo) {
     trackSpeed = 255;
   } else {
@@ -90,14 +83,30 @@ uint setTrackSpeed(bool isTurbo) {
   return trackSpeed;
 }
 
+unsigned long lastTurretMoved = 0;
+int turretTargetAngle = 90;
+int turretCurrentAngle = 90;
+
+void turretLoop() {
+  unsigned long now = millis();
+
+  if (now - lastTurretMoved > 10) {
+    if (turretTargetAngle < turretCurrentAngle) {
+      turretCurrentAngle = turretCurrentAngle - 1;
+      servoTurret.write(turretCurrentAngle);
+    }
+    else if (turretTargetAngle > turretCurrentAngle) {
+      turretCurrentAngle = turretCurrentAngle + 1;
+      servoTurret.write(turretCurrentAngle);
+    }
+    lastTurretMoved = now;
+  }
+}
+
 void init() {
   ESP_LOGI(MAIN_TAG, "Init.(Internal)");
 
-  bodyAngle = center;
-
   servoTurret.attach(PIN_TURRET_SERVO, 500, 2400);
-
-  servoTurret.write(bodyAngle);
 
   pinMode(PIN_MISSILE_LED, OUTPUT);
 
@@ -112,9 +121,8 @@ void init() {
 
 void reset() {
   ESP_LOGI(MAIN_TAG, "Reset");
-  bodyAngle = center;
 
-  servoTurret.write(bodyAngle);
+  turretTargetAngle = 90;
 
   isTurbo = false;
   setTrackSpeed(isTurbo);
@@ -124,7 +132,6 @@ void reset() {
 #endif
 }
 
-int battery = 0;
 void notify()
 {
   // RESET
@@ -172,13 +179,11 @@ void notify()
   // Turret
   if (Ps3.event.button_down.left) {
     ESP_LOGD(MAIN_TAG, "Left(Turret)");
-    bodyAngle = max(bodyAngle - 5, 10);
-    servoTurret.write(bodyAngle);
+    turretTargetAngle = max(turretCurrentAngle - 10, 45);
   }
   if (Ps3.event.button_down.right) {
     ESP_LOGD(MAIN_TAG, "Right(Turret)");
-    bodyAngle = min(bodyAngle + 5, 170);
-    servoTurret.write(bodyAngle);
+    turretTargetAngle = min(turretCurrentAngle + 10, 135);
   }
 
 #ifdef USE_SOUND
@@ -245,8 +250,6 @@ void onConnect() {
 
   ESP_LOGI(MAIN_TAG, "The ESP32's Bluetooth MAC address is: %s", address.c_str());
 
-  reset();
-
   servoTurret.attach(PIN_TURRET_SERVO, 500, 2400);
 
   ESP_LOGD(MAIN_TAG, "Setup CHANNEL_R1 %d",  CHANNEL_R1);
@@ -267,9 +270,7 @@ void onConnect() {
   ESP_LOGD(MAIN_TAG, "Attach PIN_TRACK_L2_MOTOR %d", PIN_TRACK_L2_MOTOR);
   ledcAttachPin(PIN_TRACK_L2_MOTOR, CHANNEL_L2);
 
-#ifdef USE_SOUND
-  dfmp3.playMp3FolderTrack(3);
-#endif
+  reset();
 }
 
 void onDisconnect() {
@@ -300,6 +301,8 @@ void setup() {
 void loop() {
   if(!Ps3.isConnected())
     return;
+
+  turretLoop();
 
 #ifdef USE_SOUND
   dfmp3.loop();
